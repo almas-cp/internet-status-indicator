@@ -9,7 +9,7 @@ The Internet Status Indicator is a simple application that displays a system tra
  
 1. Clone the repository or download the source code: 
    ``` 
-   git clone https://github.com/almas-cp/internet-status-indicator.git 
+   git clone https://github.com/almas-cp/internet-status-indicator/blob/main/internet%20status%20indicator.exe
    ``` 
  
  
