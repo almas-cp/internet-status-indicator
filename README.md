@@ -9,7 +9,7 @@ The Internet Status Indicator is a simple application that displays a system tra
  
 1.  Download the Executable file: 
    ``` 
-   https://github.com/almas-cp/internet-status-indicator/raw/main/setup.exe
+[Download Setup](https://github.com/almas-cp/internet-status-indicator/raw/main/setup.exe)
    ``` 
  
  
