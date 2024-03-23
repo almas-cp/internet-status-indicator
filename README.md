@@ -7,9 +7,9 @@ The Internet Status Indicator is a simple application that displays a system tra
  
 ## Installation 
  
-1. Clone the repository or download the source code: 
+1.  Download the Executable file: 
    ``` 
-   git clone https://github.com/almas-cp/internet-status-indicator/blob/main/internet%20status%20indicator.exe
+   https://github.com/almas-cp/internet-status-indicator/raw/main/setup.exe
    ``` 
  
  
@@ -18,7 +18,8 @@ The Internet Status Indicator is a simple application that displays a system tra
 1. Download and run the executable
  
 The application will run in the background, and you can check the internet status by looking at the system tray icon. 
- 
+
+2. Make the app Start on Boot 
 
 ## License 
  
