@@ -13,6 +13,12 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPainter, QPixmap, QIcon, QColor, QPen, QBrush
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QPoint
 
+# Try relative import first, then fall back to absolute import
+try:
+    from .settings_dialog import SettingsDialog
+except ImportError:
+    from settings_dialog import SettingsDialog
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
@@ -25,6 +31,9 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         super().__init__(parent)
         self.setToolTip("Network Status Indicator")
         logging.info("Initializing NetworkStatusIndicator...")
+        
+        # Initialize last_status
+        self.last_status = None
         
         # Default settings
         self.default_settings = {
@@ -49,8 +58,6 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         
         # Add context menu
         self.create_context_menu()
-        
-        self.last_status = None
 
     def load_settings(self) -> None:
         """Load settings from file or create with defaults."""
@@ -199,47 +206,9 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         
         menu.addSeparator()
         
-        # Settings submenu
-        settings_menu = menu.addMenu("Settings")
-        
-        # Time settings
-        time_action = settings_menu.addAction("Set Check Interval")
-        time_action.triggered.connect(self.set_check_interval)
-        
-        timeout_action = settings_menu.addAction("Set Ping Timeout")
-        timeout_action.triggered.connect(self.set_ping_timeout)
-        
-        # Appearance submenu
-        appearance_menu = settings_menu.addMenu("Appearance")
-        
-        # Colors
-        available_color = appearance_menu.addAction("Set Available Color")
-        available_color.triggered.connect(self.set_available_color)
-        
-        unavailable_color = appearance_menu.addAction("Set Unavailable Color")
-        unavailable_color.triggered.connect(self.set_unavailable_color)
-        
-        # Shape
-        shape_menu = appearance_menu.addMenu("Shape")
-        shapes = ['circle', 'square', 'triangle']
-        for shape in shapes:
-            action = shape_menu.addAction(shape.capitalize())
-            action.triggered.connect(lambda checked, s=shape: self.set_shape(s))
-        
-        # Size
-        size_action = appearance_menu.addAction("Set Size")
-        size_action.triggered.connect(self.set_size)
-        
-        # Border
-        border_menu = appearance_menu.addMenu("Border")
-        border_width = border_menu.addAction("Set Width")
-        border_width.triggered.connect(self.set_border_width)
-        border_color = border_menu.addAction("Set Color")
-        border_color.triggered.connect(self.set_border_color)
-        
-        # Target host
-        host_action = settings_menu.addAction("Set Target Host")
-        host_action.triggered.connect(self.set_target_host)
+        # Settings
+        settings_action = menu.addAction("Open Settings")
+        settings_action.triggered.connect(self.open_settings)
         
         menu.addSeparator()
         
@@ -249,98 +218,24 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         
         self.setContextMenu(menu)
 
-    def set_check_interval(self) -> None:
-        """Set the time between connectivity checks."""
-        current = self.settings['refresh_rate_ms'] // 1000
-        interval, ok = QInputDialog.getInt(
-            None, "Set Check Interval",
-            "Enter time between checks (seconds):",
-            current, 1, 3600
-        )
-        if ok:
-            self.settings['refresh_rate_ms'] = interval * 1000
+    def open_settings(self) -> None:
+        """Open the settings dialog."""
+        dialog = SettingsDialog(parent=None, settings=self.settings)
+        dialog.settings_changed_callback = self.apply_settings
+        
+        if dialog.exec_():
+            # Settings were accepted (OK clicked)
+            self.settings = dialog.get_settings()
             self.save_settings()
+            self.check_connectivity()  # Refresh the icon with new settings
 
-    def set_ping_timeout(self) -> None:
-        """Set the ping timeout duration."""
-        current = self.settings['timeout_seconds']
-        timeout, ok = QInputDialog.getInt(
-            None, "Set Ping Timeout",
-            "Enter ping timeout (seconds):",
-            current, 1, 10
-        )
-        if ok:
-            self.settings['timeout_seconds'] = timeout
-            self.save_settings()
-
-    def set_available_color(self) -> None:
-        """Set the color for available status."""
-        color = QColorDialog.getColor(QColor(self.color_available))
-        if color.isValid():
-            self.color_available = color.name()
-            self.check_connectivity()
-            self.save_settings()
-
-    def set_unavailable_color(self) -> None:
-        """Set the color for unavailable status."""
-        color = QColorDialog.getColor(QColor(self.color_unavailable))
-        if color.isValid():
-            self.color_unavailable = color.name()
-            self.check_connectivity()
-            self.save_settings()
-
-    def set_shape(self, shape: str) -> None:
-        """Set the icon shape."""
-        self.settings['shape'] = shape
-        self.check_connectivity()
+    def apply_settings(self, new_settings: dict) -> None:
+        """Apply the new settings."""
+        self.settings = new_settings
+        self.color_available = self.settings['color_available']
+        self.color_unavailable = self.settings['color_unavailable']
         self.save_settings()
-
-    def set_size(self) -> None:
-        """Set the icon size."""
-        current = self.settings['circle_size']
-        size, ok = QInputDialog.getInt(
-            None, "Set Size",
-            "Enter icon size (pixels):",
-            current, 20, 60
-        )
-        if ok:
-            self.settings['circle_size'] = size
-            self.settings['circle_offset'] = (64 - size) // 2
-            self.check_connectivity()
-            self.save_settings()
-
-    def set_border_width(self) -> None:
-        """Set the border width."""
-        current = self.settings['border_width']
-        width, ok = QInputDialog.getInt(
-            None, "Set Border Width",
-            "Enter border width (pixels):",
-            current, 0, 5
-        )
-        if ok:
-            self.settings['border_width'] = width
-            self.check_connectivity()
-            self.save_settings()
-
-    def set_border_color(self) -> None:
-        """Set the border color."""
-        color = QColorDialog.getColor(QColor(self.settings['border_color']))
-        if color.isValid():
-            self.settings['border_color'] = color.name()
-            self.check_connectivity()
-            self.save_settings()
-
-    def set_target_host(self) -> None:
-        """Set the target host to ping."""
-        current = self.settings['target_host']
-        host, ok = QInputDialog.getText(
-            None, "Set Target Host",
-            "Enter host to ping (e.g., 8.8.8.8):",
-            text=current
-        )
-        if ok and host:
-            self.settings['target_host'] = host
-            self.save_settings()
+        self.check_connectivity()  # Refresh the icon with new settings
 
 def main() -> None:
     """Application entry point."""
