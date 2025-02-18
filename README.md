@@ -56,8 +56,12 @@ cd internet-status-indicator
 # Install dependencies
 pip install -r requirements.txt
 
-# Run the application
-python -m network_status_indicator
+# Run the application (Method 1)
+python network_status_indicator/network_status_indicator.py
+
+# Or install and run as a package (Method 2)
+pip install -e .
+python -c "from network_status_indicator import main; main()"
 ```
 
 ## 🎮 Usage
