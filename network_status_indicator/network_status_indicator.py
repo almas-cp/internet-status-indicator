@@ -4,7 +4,10 @@ import platform
 import logging
 import json
 import os
-from typing import Optional
+import asyncio
+import aiohttp
+import time
+from typing import Optional, Tuple
 from contextlib import contextmanager
 import winreg
 from PyQt5.QtWidgets import (
@@ -12,7 +15,7 @@ from PyQt5.QtWidgets import (
     QInputDialog, QMessageBox, QWidget
 )
 from PyQt5.QtGui import QPainter, QPixmap, QIcon, QColor, QPen, QBrush
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QPoint
+from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QPoint, QThread, QObject
 
 # Try relative import first, then fall back to absolute import
 try:
@@ -22,6 +25,70 @@ except ImportError:
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+class NetworkChecker(QObject):
+    """Handles asynchronous network checks and speed measurements."""
+    status_updated = pyqtSignal(bool, float, float)  # Connected, Download speed, Upload speed
+
+    def __init__(self, target_host: str, timeout: int):
+        super().__init__()
+        self.target_host = target_host
+        self.timeout = timeout
+        self.loop = None
+        self.thread = QThread()
+        self.moveToThread(self.thread)
+        self.thread.started.connect(self._run_async_loop)
+
+    def _run_async_loop(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.loop.run_forever()
+
+    async def measure_speed(self) -> Tuple[float, float]:
+        """Measure download and upload speeds."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Measure download speed
+                start_time = time.time()
+                async with session.get('https://speed.cloudflare.com/__down') as resp:
+                    data = await resp.read()
+                    download_time = time.time() - start_time
+                    download_speed = len(data) * 8 / download_time / 1_000_000  # Mbps
+
+                # Measure upload speed
+                data = b'0' * 1000000  # 1MB of data
+                start_time = time.time()
+                async with session.post('https://speed.cloudflare.com/__up', data=data) as resp:
+                    await resp.read()
+                    upload_time = time.time() - start_time
+                    upload_speed = len(data) * 8 / upload_time / 1_000_000  # Mbps
+
+                return download_speed, upload_speed
+        except:
+            return 0.0, 0.0
+
+    async def check_connectivity(self) -> Tuple[bool, float, float]:
+        """Check network connectivity and measure speeds."""
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'http://{self.target_host}', timeout=self.timeout) as resp:
+                    is_connected = resp.status == 200
+        except:
+            is_connected = False
+
+        download_speed, upload_speed = await self.measure_speed() if is_connected else (0.0, 0.0)
+        return is_connected, download_speed, upload_speed
+
+    def start_monitoring(self):
+        """Start the monitoring thread."""
+        self.thread.start()
+
+    def stop_monitoring(self):
+        """Stop the monitoring thread."""
+        if self.loop:
+            self.loop.call_soon_threadsafe(self.loop.stop)
+        self.thread.quit()
+        self.thread.wait()
 
 class NetworkStatusIndicator(QSystemTrayIcon):
     """A system tray icon that displays network availability status."""
@@ -33,8 +100,10 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         self.setToolTip("Network Status Indicator")
         logging.info("Initializing NetworkStatusIndicator...")
         
-        # Initialize last_status
+        # Initialize last_status and speeds
         self.last_status = None
+        self.download_speed = 0.0
+        self.upload_speed = 0.0
         
         # Default settings
         self.default_settings = {
@@ -55,6 +124,11 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         self.settings_file = os.path.join(os.path.expanduser("~"), ".network_indicator_settings.json")
         self.load_settings()
         
+        # Initialize network checker
+        self.network_checker = NetworkChecker(self.settings['target_host'], self.settings['timeout_seconds'])
+        self.network_checker.status_updated.connect(self.update_status)
+        self.network_checker.start_monitoring()
+        
         # Apply autostart setting
         if self.settings.get('autostart', False):
             self.set_autostart(True)
@@ -64,6 +138,46 @@ class NetworkStatusIndicator(QSystemTrayIcon):
         
         # Add context menu
         self.create_context_menu()
+
+    def update_status(self, is_connected: bool, download_speed: float, upload_speed: float) -> None:
+        """Update the status icon and tooltip with network information."""
+        if self.last_status != is_connected:
+            self.status_changed.emit(is_connected)
+        
+        self.download_speed = download_speed
+        self.upload_speed = upload_speed
+        
+        icon = self.create_status_icon(is_connected)
+        self.setIcon(icon)
+        
+        # Update tooltip with speed information
+        status_text = 'Network Available' if is_connected else 'Network Unavailable'
+        if is_connected:
+            status_text += f'\nDownload: {download_speed:.1f} Mbps\nUpload: {upload_speed:.1f} Mbps'
+        self.setToolTip(status_text)
+        
+        self.last_status = is_connected
+
+    def check_connectivity(self) -> None:
+        """Check network connectivity using the async network checker."""
+        if self.network_checker.loop:
+            asyncio.run_coroutine_threadsafe(
+                self.network_checker.check_connectivity(),
+                self.network_checker.loop
+            ).add_done_callback(self._handle_check_result)
+        
+        # Schedule next check
+        QTimer.singleShot(self.settings['refresh_rate_ms'], self.check_connectivity)
+
+    def _handle_check_result(self, future) -> None:
+        """Handle the result of the async network check."""
+        try:
+            is_connected, download_speed, upload_speed = future.result()
+            # Update UI in the main thread
+            self.update_status(is_connected, download_speed, upload_speed)
+        except Exception as e:
+            logging.error(f'Error handling network check result: {e}')
+            self.update_status(False, 0.0, 0.0)
 
     def load_settings(self) -> None:
         """Load settings from file or create with defaults."""
