@@ -6,6 +6,7 @@ import json
 import os
 from typing import Optional
 from contextlib import contextmanager
+import winreg
 from PyQt5.QtWidgets import (
     QSystemTrayIcon, QApplication, QMenu, QColorDialog, 
     QInputDialog, QMessageBox, QWidget
@@ -46,12 +47,17 @@ class NetworkStatusIndicator(QSystemTrayIcon):
             "border_width": 0,
             "border_color": "#000000",
             "color_available": "#4fde23",
-            "color_unavailable": "#f22424"
+            "color_unavailable": "#f22424",
+            "autostart": False
         }
         
         # Load or create settings
         self.settings_file = os.path.join(os.path.expanduser("~"), ".network_indicator_settings.json")
         self.load_settings()
+        
+        # Apply autostart setting
+        if self.settings.get('autostart', False):
+            self.set_autostart(True)
         
         # Start monitoring
         self.check_connectivity()
@@ -231,11 +237,52 @@ class NetworkStatusIndicator(QSystemTrayIcon):
 
     def apply_settings(self, new_settings: dict) -> None:
         """Apply the new settings."""
+        old_autostart = self.settings.get('autostart', False)
         self.settings = new_settings
         self.color_available = self.settings['color_available']
         self.color_unavailable = self.settings['color_unavailable']
+        
+        # Handle autostart setting change
+        if old_autostart != self.settings.get('autostart', False):
+            self.set_autostart(self.settings['autostart'])
+        
         self.save_settings()
         self.check_connectivity()  # Refresh the icon with new settings
+
+    def set_autostart(self, enable: bool) -> None:
+        """Enable or disable auto-start at Windows startup."""
+        try:
+            key_path = r"Software\Microsoft\Windows\CurrentVersion\Run"
+            app_name = "NetworkStatusIndicator"
+            
+            # Get the path of the executable
+            if getattr(sys, 'frozen', False):
+                # Running as compiled executable
+                app_path = f'"{sys.executable}"'
+            else:
+                # Running as script
+                app_path = f'"{sys.executable}" "{os.path.abspath(__file__)}"'
+            
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, key_path, 0, winreg.KEY_ALL_ACCESS)
+            except WindowsError:
+                key = winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path)
+            
+            if enable:
+                winreg.SetValueEx(key, app_name, 0, winreg.REG_SZ, app_path)
+                logging.info(f"Added auto-start registry key: {app_path}")
+            else:
+                try:
+                    winreg.DeleteValue(key, app_name)
+                    logging.info("Removed auto-start registry key")
+                except WindowsError:
+                    pass  # Key doesn't exist
+            
+            winreg.CloseKey(key)
+        except Exception as e:
+            logging.error(f"Error setting auto-start: {e}")
+            QMessageBox.warning(None, "Auto-start Error",
+                              "Failed to set auto-start. You may need to run as administrator.")
 
 def main() -> None:
     """Application entry point."""
