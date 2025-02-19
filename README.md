@@ -9,141 +9,164 @@
 
 <img src="https://raw.githubusercontent.com/almas-cp/internet-status-indicator/main/docs/assets/demo.gif" alt="Demo" width="600"/>
 
-*A sleek system tray application for real-time internet connectivity monitoring*
+*A powerful, lightweight system tray application for real-time internet connectivity monitoring with speed measurements*
+
+[Installation](#-installation) • [Features](#-features) • [Configuration](#-configuration) • [FAQ](#-faq) • [Contributing](#-contributing)
 
 </div>
 
-## ✨ Features
+## 🚀 Key Features
 
-- 🔔 **Real-time Monitoring**: Instant updates on your internet connection status
-- 🎯 **Visual Indicators**: 
-  - 🟢 Green icon: Internet connection is active
-  - 🔴 Red icon: No internet connection
-- 🚀 **System Integration**: 
-  - Seamless system tray integration
-  - Lightweight and resource-efficient
-  - Optional startup with Windows
-- 💻 **User-Friendly**: Simple right-click menu for all controls
-- ⚡ **Fast Performance**: Written in Python with optimized networking checks
+- 🔄 **Real-time Network Monitoring**
+  - Instant connection status updates
+  - Download and upload speed measurements
+  - Configurable check intervals
 
-## 🔧 Requirements
+- 🎨 **Customizable Visual Indicators**
+  - Multiple shape options (circle, square, triangle)
+  - Customizable colors for connected/disconnected states
+  - Adjustable size and border options
 
+- ⚡ **Performance Optimized**
+  - Asynchronous network checks
+  - Minimal CPU and memory usage
+  - Fast startup and response time
+
+- 🔧 **Advanced Configuration**
+  - Custom target host for connectivity checks
+  - Adjustable timeout settings
+  - Configurable refresh rates
+
+- 💻 **System Integration**
+  - Windows startup integration
+  - System tray quick actions
+  - Persistent settings storage
+
+## 🛠️ Requirements
+
+### For Users
 - Windows 10 or Windows 11
-- For users: Just download and run!
-- For developers:
-  - Python 3.7 or higher
-  - PyQt5 library
+- No additional software required
+
+### For Developers
+- Python 3.7 or higher
+- Dependencies:
+  - PyQt5 ≥ 5.15.0 (UI framework)
+  - aiohttp ≥ 3.8.0 (async network operations)
+  - asyncio ≥ 3.4.3 (async support)
 
 ## 📦 Installation
 
-### For Users 👥
-
-1. Download the latest release:
-   - [⬇️ Download Latest Version](https://github.com/almas-cp/internet-status-indicator/releases/latest)
-2. Extract the ZIP file to your preferred location
+### Quick Start (Users)
+1. Download the latest release from our [releases page](https://github.com/almas-cp/internet-status-indicator/releases/latest)
+2. Extract the ZIP file
 3. Run `internet-status-indicator.exe`
-4. Look for the icon in your system tray! 🎉
+4. Look for the indicator in your system tray
 
-### For Developers 👨‍💻
-
+### Developer Installation
 ```bash
 # Clone the repository
 git clone https://github.com/almas-cp/internet-status-indicator.git
-
-# Navigate to the project directory
 cd internet-status-indicator
 
-# Install dependencies
+# Method 1: Direct run
 pip install -r requirements.txt
-
-# Run the application (Method 1)
 python network_status_indicator/network_status_indicator.py
 
-# Or install and run as a package (Method 2)
+# Method 2: Install as package
 pip install -e .
 python -c "from network_status_indicator import main; main()"
 ```
 
-## 🎮 Usage
+## ⚙️ Configuration
 
-### Basic Usage
-1. Launch the application
-2. Look for the icon in your system tray:
-   - 🟢 Green: You're connected!
-   - 🔴 Red: Check your internet connection
+### Visual Settings
+- **Indicator Shape**: Choose between circle, square, or triangle
+- **Colors**: Customize for both connected and disconnected states
+- **Size & Border**: Adjust indicator size and border properties
 
-### Advanced Features
-Right-click the tray icon to access:
-- ⚙️ Settings
-  - Start with Windows
-  - Check interval configuration
-- ℹ️ About
-- 🚪 Exit
+### Network Settings
+- **Target Host**: Default is 8.8.8.8 (Google DNS)
+- **Check Interval**: Configurable from 500ms to 10000ms
+- **Timeout**: Adjustable from 1 to 10 seconds
+
+### System Settings
+- **Auto-start**: Option to launch with Windows
+- **Tray Menu**: Quick access to all settings
 
 ## 🔍 How It Works
 
-The application uses a sophisticated approach to monitor your internet connection:
+### Network Monitoring
+1. **Connectivity Check**
+   - HTTP request to configured target host
+   - Fallback to alternative methods if primary fails
 
-1. **Connection Checking**: 
-   - Primary check: DNS resolution test
-   - Secondary check: HTTP request to reliable servers
-   - Fallback: Socket connection test
+2. **Speed Measurement**
+   - Download speed test using Cloudflare's speed test endpoints
+   - Upload speed measurement with optimized data packets
+   - Real-time speed updates in tooltip
 
-2. **System Integration**:
-   - Uses PyQt5 for the system tray interface
-   - Efficient event-driven architecture
-   - Minimal CPU and memory footprint
+3. **Status Updates**
+   - Asynchronous network operations
+   - Event-driven UI updates
+   - Efficient error handling and recovery
 
-3. **Error Handling**:
-   - Graceful recovery from network changes
-   - Automatic reconnection attempts
-   - Robust error logging
+## ❓ FAQ
 
-## 📁 Project Structure
+### General Questions
 
-```
-internet-status-indicator/
-├── network_status_indicator/
-│   ├── __init__.py              # Package initialization
-│   └── network_status_indicator.py  # Main application logic
-├── requirements.txt             # Project dependencies
-├── setup.py                     # Package configuration
-├── LICENSE                      # MIT License
-└── README.md                    # This documentation
-```
+**Q: How accurate are the speed measurements?**
+A: Speed measurements use Cloudflare's speed test infrastructure, providing reliable results comparable to dedicated speed test services.
+
+**Q: Will this slow down my internet?**
+A: No, the application uses minimal bandwidth for checks and optimizes network requests to avoid impact on your connection.
+
+**Q: Can I change the check frequency?**
+A: Yes, you can adjust the check interval from 500ms to 10 seconds in the settings.
+
+### Troubleshooting
+
+**Q: The indicator shows I'm offline when I'm not**
+A: Try:
+1. Checking your target host setting
+2. Increasing the timeout value
+3. Verifying firewall settings
+
+**Q: The application won't start with Windows**
+A: Ensure you have administrator privileges when enabling auto-start.
 
 ## 🤝 Contributing
 
-Contributions are what make the open-source community amazing! Any contributions you make are **greatly appreciated**.
+We welcome contributions! Here's how you can help:
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. **Code Contributions**
+   - Fork the repository
+   - Create a feature branch
+   - Submit a pull request
 
-## 🐛 Bug Reports
+2. **Bug Reports**
+   - Use the issue tracker
+   - Include detailed reproduction steps
+   - Provide system information
 
-Found a bug? Please open an issue with:
-- 🔍 Expected behavior
-- 🚫 Current behavior
-- 📝 Steps to reproduce
-- 💻 System information
+3. **Feature Requests**
+   - Open an issue with the "enhancement" label
+   - Describe the feature and its benefits
 
 ## 📜 License
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Distributed under the MIT License. See `LICENSE` for details.
 
 ## 👨‍💻 Author
 
 **almas-cp**
 - GitHub: [@almas-cp](https://github.com/almas-cp)
 
-## 🙏 Acknowledgments
+## 🌟 Acknowledgments
 
-- Thanks to all contributors
 - Built with Python and PyQt5
-- Inspired by the need for simple network monitoring
+- Speed testing powered by Cloudflare
+- Icons and UI inspired by modern design principles
 
 ---
 
