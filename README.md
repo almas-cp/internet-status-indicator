@@ -47,7 +47,7 @@ irm almas-cp.github.io/isi | iex
 ```
 
 <div align="center">
-  <i>That's it! No complicated setup required.</i>
+  <i>Check your system tray more icons( ^ ), That's it! No complicated setup required.</i>
 </div>
 
 ## 🔧 How It Works
