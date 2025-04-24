@@ -1,179 +1,59 @@
-# Internet Status Indicator 🌐
+# Internet Status Indicator (ISI)
 
-<div align="center">
+A simple Windows system tray application that monitors your internet connection status in real-time.
 
-![Python Version](https://img.shields.io/badge/python-3.7%2B-blue.svg)
-![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
-![License](https://img.shields.io/badge/license-MIT-green.svg)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-brightgreen.svg)](https://github.com/almas-cp/internet-status-indicator/graphs/commit-activity)
+## Features
 
-<img src="https://raw.githubusercontent.com/almas-cp/internet-status-indicator/main/docs/assets/demo.gif" alt="Demo" width="600"/>
+- **Real-time monitoring**: Continuously checks your internet connection
+- **Visual indicator**: Green icon when connected, red icon when disconnected
+- **Minimal resource usage**: Lightweight application that runs in the system tray
+- **Simple interface**: No complicated settings or configuration needed
 
-*A powerful, lightweight system tray application for real-time internet connectivity monitoring with speed measurements*
+## Installation
 
-[Installation](#-installation) • [Features](#-features) • [Configuration](#-configuration) • [FAQ](#-faq) • [Contributing](#-contributing)
+You can install Internet Status Indicator with a single command in PowerShell:
 
-</div>
-
-## 🚀 Key Features
-
-- 🔄 **Real-time Network Monitoring**
-  - Instant connection status updates
-  - Download and upload speed measurements
-  - Configurable check intervals
-
-- 🎨 **Customizable Visual Indicators**
-  - Multiple shape options (circle, square, triangle)
-  - Customizable colors for connected/disconnected states
-  - Adjustable size and border options
-
-- ⚡ **Performance Optimized**
-  - Asynchronous network checks
-  - Minimal CPU and memory usage
-  - Fast startup and response time
-
-- 🔧 **Advanced Configuration**
-  - Custom target host for connectivity checks
-  - Adjustable timeout settings
-  - Configurable refresh rates
-
-- 💻 **System Integration**
-  - Windows startup integration
-  - System tray quick actions
-  - Persistent settings storage
-
-## 🛠️ Requirements
-
-### For Users
-- Windows 10 or Windows 11
-- No additional software required
-
-### For Developers
-- Python 3.7 or higher
-- Dependencies:
-  - PyQt5 ≥ 5.15.0 (UI framework)
-  - aiohttp ≥ 3.8.0 (async network operations)
-  - asyncio ≥ 3.4.3 (async support)
-
-## 📦 Installation
-
-### Quick Start (Users)
-1. Download the latest release from our [releases page](https://github.com/almas-cp/internet-status-indicator/releases/latest)
-2. Extract the ZIP file
-3. Run `internet-status-indicator.exe`
-4. Look for the indicator in your system tray
-
-### Developer Installation
-```bash
-# Clone the repository
-git clone https://github.com/almas-cp/internet-status-indicator.git
-cd internet-status-indicator
-
-# Method 1: Direct run
-pip install -r requirements.txt
-python network_status_indicator/network_status_indicator.py
-
-# Method 2: Install as package
-pip install -e .
-python -c "from network_status_indicator import main; main()"
+```powershell
+irm almas-cp.github.io/isi | iex
 ```
 
-## ⚙️ Configuration
+This command will download and install the application automatically.
 
-### Visual Settings
-- **Indicator Shape**: Choose between circle, square, or triangle
-- **Colors**: Customize for both connected and disconnected states
-- **Size & Border**: Adjust indicator size and border properties
+## How It Works
 
-### Network Settings
-- **Target Host**: Default is 8.8.8.8 (Google DNS)
-- **Check Interval**: Configurable from 500ms to 10000ms
-- **Timeout**: Adjustable from 1 to 10 seconds
+Internet Status Indicator works by:
 
-### System Settings
-- **Auto-start**: Option to launch with Windows
-- **Tray Menu**: Quick access to all settings
+1. Creating a system tray icon that displays your current internet status
+2. Checking connectivity to Google's DNS server (8.8.8.8)
+3. Updating the icon color based on connection status:
+   - Green: Internet connection is available
+   - Red: No internet connection detected
 
-## 🔍 How It Works
+## Requirements
 
-### Network Monitoring
-1. **Connectivity Check**
-   - HTTP request to configured target host
-   - Fallback to alternative methods if primary fails
+- Windows operating system
+- Python 3.6 or higher
+- Required Python packages:
+  - pystray
+  - Pillow (PIL)
+  - requests
 
-2. **Speed Measurement**
-   - Download speed test using Cloudflare's speed test endpoints
-   - Upload speed measurement with optimized data packets
-   - Real-time speed updates in tooltip
+## Manual Installation
 
-3. **Status Updates**
-   - Asynchronous network operations
-   - Event-driven UI updates
-   - Efficient error handling and recovery
+If you prefer to install manually:
 
-## ❓ FAQ
+1. Clone this repository
+2. Install required packages: `pip install pystray pillow requests`
+3. Run the script: `python script.py`
 
-### General Questions
+## Uninstallation
 
-**Q: How accurate are the speed measurements?**
-A: Speed measurements use Cloudflare's speed test infrastructure, providing reliable results comparable to dedicated speed test services.
+To uninstall, simply right-click the tray icon and select "Exit".
 
-**Q: Will this slow down my internet?**
-A: No, the application uses minimal bandwidth for checks and optimizes network requests to avoid impact on your connection.
+## Contributing
 
-**Q: Can I change the check frequency?**
-A: Yes, you can adjust the check interval from 500ms to 10 seconds in the settings.
+Contributions are welcome! Feel free to submit issues or pull requests.
 
-### Troubleshooting
+## License
 
-**Q: The indicator shows I'm offline when I'm not**
-A: Try:
-1. Checking your target host setting
-2. Increasing the timeout value
-3. Verifying firewall settings
-
-**Q: The application won't start with Windows**
-A: Ensure you have administrator privileges when enabling auto-start.
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Code Contributions**
-   - Fork the repository
-   - Create a feature branch
-   - Submit a pull request
-
-2. **Bug Reports**
-   - Use the issue tracker
-   - Include detailed reproduction steps
-   - Provide system information
-
-3. **Feature Requests**
-   - Open an issue with the "enhancement" label
-   - Describe the feature and its benefits
-
-## 📜 License
-
-Distributed under the MIT License. See `LICENSE` for details.
-
-## 👨‍💻 Author
-
-**almas-cp**
-- GitHub: [@almas-cp](https://github.com/almas-cp)
-
-## 🌟 Acknowledgments
-
-- Built with Python and PyQt5
-- Speed testing powered by Cloudflare
-- Icons and UI inspired by modern design principles
-
----
-
-<div align="center">
-
-Made with ❤️ by almas-cp
-
-⭐ Star this project if you find it useful!
-
-</div>
+This project is licensed under the MIT License - see the LICENSE file for details.
