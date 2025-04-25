@@ -25,8 +25,10 @@
   | Green Icon   | Red Icon        |
   
 </div>
+
 ![image](https://github.com/user-attachments/assets/4da30cf4-6425-4136-96bb-9e6591b8be26)
 ![image](https://github.com/user-attachments/assets/41ca6897-95be-4a4c-a33c-4573adab600d)
+
 
 ## ✨ Features
 
@@ -43,7 +45,7 @@ Install Internet Status Indicator with a single command in PowerShell:
 ```powershell
 irm almas-cp.github.io/isi | iex
 ```
-After installation, look here!
+
 ![image](https://github.com/user-attachments/assets/f3813323-ff11-412a-8d78-3462e28913de)
 
 <div align="center">
