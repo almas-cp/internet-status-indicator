@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internet Status Indicator | Simple. Reliable. Essential.</title>
+    <meta name="description" content="A lightweight Windows system tray application providing real-time visual feedback on your internet connection status.">
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Color Palette */
+            --bg-base: #030712;
+            --bg-surface: rgba(17, 24, 39, 0.6);
+            --bg-surface-hover: rgba(31, 41, 55, 0.8);
+            
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-highlight: rgba(255, 255, 255, 0.15);
+            
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            
+            --accent-primary: #10b981; /* Emerald */
+            --accent-primary-glow: rgba(16, 185, 129, 0.3);
+            --accent-secondary: #3b82f6; /* Blue */
+            
+            --status-green: #22c55e;
+            --status-red: #ef4444;
+
+            /* Shadows & Blurs */
+            --blur-md: blur(12px);
+            --blur-lg: blur(24px);
+            --shadow-glow: 0 0 40px -10px var(--accent-primary-glow);
+            
+            /* Transitions */
+            --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            --transition-smooth: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            --transition-bounce: 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(16, 185, 129, 0.08), transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(59, 130, 246, 0.08), transparent 25%);
+            background-attachment: fixed;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Glassmorphism Utilities */
+        .glass {
+            background: var(--bg-surface);
+            backdrop-filter: var(--blur-lg);
+            -webkit-backdrop-filter: var(--blur-lg);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-panel {
+            background: linear-gradient(180deg, rgba(31, 41, 55, 0.4) 0%, rgba(17, 24, 39, 0.6) 100%);
+            backdrop-filter: var(--blur-md);
+            -webkit-backdrop-filter: var(--blur-md);
+            border: 1px solid var(--border-subtle);
+            border-top: 1px solid var(--border-highlight);
+            border-radius: 20px;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4 {
+            line-height: 1.1;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* Layout */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            width: 100%;
+        }
+
+        header {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 100;
+            border-bottom: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+        }
+
+        header.scrolled {
+            background: rgba(3, 7, 18, 0.8);
+            backdrop-filter: var(--blur-md);
+            -webkit-backdrop-filter: var(--blur-md);
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 4.5rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-weight: 700;
+            font-size: 1.25rem;
+            letter-spacing: -0.02em;
+            text-decoration: none;
+            color: var(--text-primary);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--status-green);
+            box-shadow: 0 0 12px var(--status-green);
+            animation: pulse-green 2s infinite;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: var(--transition-fast);
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 12rem 0 8rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.35rem 1rem;
+            border-radius: 9999px;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--accent-primary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-up 0.8s var(--transition-bounce) forwards;
+            animation-delay: 0.1s;
+        }
+
+        .hero h1 {
+            font-size: clamp(3rem, 6vw, 5rem);
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, #fff 0%, #9ca3af 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-up 0.8s var(--transition-bounce) forwards;
+            animation-delay: 0.2s;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 3rem;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-up 0.8s var(--transition-bounce) forwards;
+            animation-delay: 0.3s;
+        }
+
+        /* Install Command */
+        .install-container {
+            position: relative;
+            max-width: 600px;
+            width: 100%;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fade-up 0.8s var(--transition-bounce) forwards;
+            animation-delay: 0.4s;
+        }
+
+        .install-box {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1rem 1.25rem;
+            background: #0f172a;
+            border: 1px solid #1e293b;
+            border-radius: 12px;
+            font-size: 1rem;
+            color: #e2e8f0;
+            cursor: pointer;
+            transition: var(--transition-smooth);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+        }
+
+        .install-box::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.03), transparent);
+            transform: translateX(-100%);
+            transition: 0.5s;
+        }
+
+        .install-box:hover {
+            border-color: rgba(16, 185, 129, 0.4);
+            box-shadow: var(--shadow-glow);
+            transform: translateY(-2px);
+        }
+
+        .install-box:hover::before {
+            transform: translateX(100%);
+        }
+        
+        .install-box:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .command-text {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            user-select: all;
+        }
+
+        .prompt {
+            color: var(--text-muted);
+            user-select: none;
+        }
+
+        .copy-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-secondary);
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .install-box:hover .copy-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text-primary);
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        .copy-icon {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* Features Grid */
+        .section-title {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 4rem;
+            background: linear-gradient(to right, #fff, #9ca3af);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .features {
+            padding: 6rem 0;
+            position: relative;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .feature-card {
+            padding: 2rem;
+            transition: var(--transition-smooth);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        
+        .feature-card.visible {
+            animation: fade-up 0.8s var(--transition-bounce) forwards;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.2);
+            background: rgba(31, 41, 55, 0.5);
+        }
+
+        .feature-icon-wrapper {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+        }
+
+        .feature-card:hover .feature-icon-wrapper {
+            background: rgba(16, 185, 129, 0.1);
+            border-color: rgba(16, 185, 129, 0.3);
+            color: var(--accent-primary);
+            transform: scale(1.05) rotate(-3deg);
+        }
+
+        .feature-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .feature-desc {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* How it works */
+        .how-it-works {
+            padding: 6rem 0;
+        }
+
+        .steps-container {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .step {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.5rem;
+            padding: 2rem;
+            opacity: 0;
+            transform: translateX(-30px);
+            transition: var(--transition-smooth);
+        }
+        
+        .step.visible {
+            opacity: 1;
+            transform: translateX(0);
+        }
+        
+        .step:hover {
+            background: rgba(255, 255, 255, 0.02);
+            border-color: var(--border-highlight);
+        }
+
+        .step-number {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+            background: rgba(16, 185, 129, 0.1);
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            flex-shrink: 0;
+            transition: var(--transition-smooth);
+        }
+        
+        .step:hover .step-number {
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .step-content h3 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .step-content p {
+            color: var(--text-secondary);
+        }
+
+        /* Status Visualizer */
+        .status-visualizer {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .status-card {
+            padding: 1.5rem;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid var(--border-subtle);
+            transition: var(--transition-smooth);
+        }
+
+        .status-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-indicator {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+        }
+
+        .status-indicator.online {
+            background: var(--status-green);
+            box-shadow: 0 0 15px var(--status-green);
+        }
+
+        .status-indicator.offline {
+            background: var(--status-red);
+            box-shadow: 0 0 15px var(--status-red);
+        }
+
+        .status-text {
+            font-weight: 600;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-subtle);
+            padding: 3rem 0;
+            margin-top: auto;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        footer p {
+            margin-bottom: 0.5rem;
+        }
+
+        footer a {
+            color: var(--text-primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: var(--transition-fast);
+        }
+
+        footer a:hover {
+            color: var(--accent-primary);
+        }
+
+        /* UI Notifications/Toast */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: rgba(17, 24, 39, 0.9);
+            backdrop-filter: var(--blur-md);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-left: 4px solid var(--accent-primary);
+            color: var(--text-primary);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            transform: translateX(120%);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        /* Animations */
+        @keyframes fade-up {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* Loaders */
+        .loader-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--bg-base);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            transition: opacity 0.6s ease;
+        }
+
+        .loader {
+            width: 48px;
+            height: 48px;
+            border: 3px solid rgba(255,255,255,0.1);
+            border-radius: 50%;
+            border-top-color: var(--accent-primary);
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 { font-size: 2.5rem; }
+            .nav-links { display: none; }
+            .install-box { flex-direction: column; align-items: stretch; gap: 1rem; }
+            .copy-btn { justify-content: center; }
+            .step { flex-direction: column; gap: 1rem; }
+            .status-visualizer { flex-direction: column; align-items: stretch; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Entrance Loader -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Header Navigation -->
+    <header id="header" class="glass">
+        <div class="container nav">
+            <a href="#" class="logo">
+                <div class="status-dot"></div>
+                Internet Status Indicator
+            </a>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How it Works</a>
+                <a href="https://github.com/almas-cp/internet-status-indicator" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <!-- Hero Section -->
+        <section class="hero container">
+            <div class="badge">
+                <span>🟢 V1.0 Available Now for Windows</span>
+            </div>
+            <h1>Simple. Reliable.<br>Essential.</h1>
+            <p>A lightweight Windows system tray application that provides real-time visual feedback on your internet connection status. Never wonder if you're connected again.</p>
+            
+            <div class="install-container">
+                <div class="install-box" tabindex="0" id="installCmd" role="button" aria-label="Copy install command">
+                    <div class="command-text mono">
+                        <span class="prompt">PS&gt;</span>
+                        <span id="cmdText">irm almas-cp.github.io/isi | iex</span>
+                    </div>
+                    <button class="copy-btn mono" aria-label="Copy to clipboard">
+                        <svg class="copy-icon" viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features" class="features container">
+            <h2 class="section-title">Why use Internet Status Indicator?</h2>
+            <div class="features-grid">
+                <div class="feature-card glass-panel observe-anim" style="animation-delay: 0.1s;">
+                    <div class="feature-icon-wrapper">🔄</div>
+                    <h3 class="feature-title">Real-time Monitoring</h3>
+                    <p class="feature-desc">Continuously and efficiently checks your internet connection in the background without draining system resources.</p>
+                </div>
+                <div class="feature-card glass-panel observe-anim" style="animation-delay: 0.2s;">
+                    <div class="feature-icon-wrapper">🎯</div>
+                    <h3 class="feature-title">Visual Feedback</h3>
+                    <p class="feature-desc">Instantly see your connection status with clean, high-contrast color-coded system tray icons.</p>
+                </div>
+                <div class="feature-card glass-panel observe-anim" style="animation-delay: 0.3s;">
+                    <div class="feature-icon-wrapper">🪶</div>
+                    <h3 class="feature-title">Lightweight Design</h3>
+                    <p class="feature-desc">Engineered for minimal resource footprint. Runs silently in your tray, invisible until you need it.</p>
+                </div>
+                <div class="feature-card glass-panel observe-anim" style="animation-delay: 0.4s;">
+                    <div class="feature-icon-wrapper">🧠</div>
+                    <h3 class="feature-title">Smart Detection</h3>
+                    <p class="feature-desc">Utilizes robust verification methods contacting high-availability endpoints to ensure precise connectivity status.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How it works Section -->
+        <section id="how-it-works" class="how-it-works container">
+            <h2 class="section-title">How It Works</h2>
+            <div class="steps-container">
+                <div class="step glass-panel observe-anim">
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3>System Tray Integration</h3>
+                        <p>Creates a seamless, localized system tray icon using the native Windows API, providing a non-intrusive persistent interface.</p>
+                    </div>
+                </div>
+                <div class="step glass-panel observe-anim" style="transition-delay: 0.1s;">
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3>Connectivity Verification</h3>
+                        <p>Periodically validates end-to-end network connectivity by securely polling reliable DNS servers (like 8.8.8.8) with ultra-low latency requests.</p>
+                    </div>
+                </div>
+                <div class="step glass-panel observe-anim" style="transition-delay: 0.2s;">
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3>Dynamic Visual Updates</h3>
+                        <p>Instantly morphs the icon state representing real-time status telemetry sent back from the verification layer.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="status-visualizer">
+                <div class="status-card">
+                    <div class="status-indicator online"></div>
+                    <span class="status-text text-green">Online</span>
+                </div>
+                <div class="status-card">
+                    <div class="status-indicator offline"></div>
+                    <span class="status-text text-red">Offline</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <p><b>Stay connected. Stay informed.</b></p>
+            <p>Built with precision by <a href="https://github.com/almas-cp" target="_blank" rel="noopener noreferrer">almas-cp</a></p>
+            <p style="margin-top: 1rem; opacity: 0.5;">Licensed under MIT <br> Windows • Python 3.6+</p>
+        </div>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+            <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        <span>Command copied to clipboard!</span>
+    </div>
+
+    <script>
+        // Handle Loader
+        window.addEventListener('load', () => {
+            const loader = document.getElementById('loader');
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+            }, 600);
+        });
+
+        // Header Scroll Effect
+        const header = document.getElementById('header');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 20) {
+                header.classList.add('scrolled');
+            } else {
+                header.classList.remove('scrolled');
+            }
+        });
+
+        // Copy to Clipboard Interaction
+        const installBox = document.getElementById('installCmd');
+        const cmdText = document.getElementById('cmdText').innerText;
+        const toast = document.getElementById('toast');
+        const copyBtn = installBox.querySelector('.copy-btn');
+        let toastTimeout;
+
+        function showToast() {
+            toast.classList.add('show');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        installBox.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(cmdText);
+                
+                // tactile feedback
+                copyBtn.innerHTML = `
+                    <svg class="copy-icon" viewBox="0 0 24 24" stroke="var(--accent-primary)">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                    </svg>
+                    Copied
+                `;
+                copyBtn.style.color = 'var(--text-primary)';
+                copyBtn.style.borderColor = 'var(--accent-primary)';
+                
+                showToast();
+
+                setTimeout(() => {
+                    copyBtn.innerHTML = `
+                        <svg class="copy-icon" viewBox="0 0 24 24">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        Copy
+                    `;
+                    copyBtn.style.color = '';
+                    copyBtn.style.borderColor = '';
+                }, 2000);
+            } catch (err) {
+                console.error('Failed to copy text: ', err);
+            }
+        });
+
+        // Keyboard accessibility for copy
+        installBox.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                installBox.click();
+            }
+        });
+
+        // Intersection Observer for scroll animations
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.15
+        };
+
+        const observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.observe-anim').forEach((el) => {
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
