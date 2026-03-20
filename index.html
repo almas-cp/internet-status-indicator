@@ -51,6 +51,10 @@
             -moz-osx-font-smoothing: grayscale;
         }
 
+        html {
+            scroll-behavior: smooth;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-base);
@@ -432,6 +436,7 @@
         .step:hover {
             background: rgba(255, 255, 255, 0.02);
             border-color: var(--border-highlight);
+            transition-delay: 0s !important;
         }
 
         .step-number {
@@ -509,6 +514,9 @@
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.9rem;
         }
+
+        .text-green { color: var(--status-green); }
+        .text-red { color: var(--status-red); }
 
         /* Footer */
         footer {
@@ -623,7 +631,7 @@
 
     <!-- Header Navigation -->
     <header id="header" class="glass">
-        <div class="container nav">
+        <nav class="container">
             <a href="#" class="logo">
                 <div class="status-dot"></div>
                 Internet Status Indicator
@@ -633,7 +641,7 @@
                 <a href="#how-it-works">How it Works</a>
                 <a href="https://github.com/almas-cp/internet-status-indicator" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
-        </div>
+        </nav>
     </header>
 
     <main>
@@ -788,13 +796,13 @@
                 
                 // tactile feedback
                 copyBtn.innerHTML = `
-                    <svg class="copy-icon" viewBox="0 0 24 24" stroke="var(--accent-primary)">
+                    <svg class="copy-icon" viewBox="0 0 24 24">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
                         <polyline points="22 4 12 14.01 9 11.01"></polyline>
                     </svg>
                     Copied
                 `;
-                copyBtn.style.color = 'var(--text-primary)';
+                copyBtn.style.color = 'var(--accent-primary)';
                 copyBtn.style.borderColor = 'var(--accent-primary)';
                 
                 showToast();
