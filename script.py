@@ -1,150 +1,90 @@
-"""
-Internet Status Indicator — System tray app showing real-time internet connectivity.
-
-Green circle  = connected
-Red circle    = disconnected
-
-Uses a socket probe to Google DNS (8.8.8.8:53) with an HTTP fallback.
-"""
-
-import pystray
+import socket
 import threading
 import time
-import socket
-import logging
+from datetime import datetime
+
+import pystray
+from pystray import MenuItem
 from PIL import Image, ImageDraw
 
-# ---------------------------------------------------------------------------
-# Logging — only log state *changes*, not every poll
-# ---------------------------------------------------------------------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s  %(levelname)-8s  %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
-logger = logging.getLogger("ISI")
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-CHECK_INTERVAL = 3        # seconds between checks (3s is responsive yet light)
-DNS_HOST = "8.8.8.8"     # Google public DNS
-DNS_PORT = 53
-SOCKET_TIMEOUT = 3        # seconds
-HTTP_TIMEOUT = 3          # seconds
-HTTP_URL = "https://www.google.com"
+def make_icon(color: str) -> Image.Image:
+    """Create a 64x64 RGBA image with a filled colored circle."""
+    colors = {
+        "green": (34, 197, 94),
+        "red": (239, 68, 68),
+    }
+    rgb = colors[color]
 
-# ---------------------------------------------------------------------------
-# Icon helpers
-# ---------------------------------------------------------------------------
-
-def _make_circle(color: tuple[int, int, int, int]) -> Image.Image:
-    """Return a 64×64 RGBA image with a filled circle of *color*."""
     img = Image.new("RGBA", (64, 64), (0, 0, 0, 0))
-    ImageDraw.Draw(img).ellipse((8, 8, 56, 56), fill=color)
+    draw = ImageDraw.Draw(img)
+    draw.ellipse([2, 2, 62, 62], fill=rgb)
     return img
 
 
-GREEN_ICON = _make_circle((0, 200, 80, 255))   # connected
-RED_ICON   = _make_circle((220, 40, 40, 255))   # disconnected
+def is_connected() -> bool:
+    """Check internet connectivity via TCP socket to DNS resolvers."""
+    targets = [("8.8.8.8", 53), ("1.1.1.1", 53)]
 
-# ---------------------------------------------------------------------------
-# Connectivity check
-# ---------------------------------------------------------------------------
+    for host, port in targets:
+        sock = None
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(1.5)
+            sock.connect((host, port))
+            return True
+        except OSError:
+            continue
+        finally:
+            if sock:
+                sock.close()
 
-def _check_socket() -> bool:
-    """Try a TCP connection to the DNS host on port 53."""
-    try:
-        conn = socket.create_connection((DNS_HOST, DNS_PORT), timeout=SOCKET_TIMEOUT)
-        conn.close()
-        return True
-    except OSError:
-        return False
-
-
-def _check_http() -> bool:
-    """Fallback: try an HTTP GET to a well-known URL."""
-    try:
-        import requests  # lazy import — only needed on fallback
-        resp = requests.get(HTTP_URL, timeout=HTTP_TIMEOUT)
-        return resp.status_code < 400
-    except Exception:
-        return False
+    return False
 
 
-def is_online() -> bool:
-    """Return *True* if the machine can reach the internet."""
-    return _check_socket() or _check_http()
-
-# ---------------------------------------------------------------------------
-# Monitor thread
-# ---------------------------------------------------------------------------
-
-def _monitor(icon: pystray.Icon, stop_event: threading.Event) -> None:
-    """Poll connectivity and update the tray icon on state changes."""
-    # Give the tray icon a moment to initialize
-    time.sleep(0.5)
-
-    previous: bool | None = None  # unknown on first run
+def monitor(icon: pystray.Icon, stop_event: threading.Event) -> None:
+    """Background thread that monitors connectivity and updates the tray icon."""
+    last_state = None
 
     while not stop_event.is_set():
-        online = is_online()
+        current_state = is_connected()
 
-        # Only touch the icon / log when the state actually changes
-        if online != previous:
-            if online:
-                icon.icon = GREEN_ICON
+        if current_state != last_state:
+            if current_state:
+                icon.icon = make_icon("green")
                 icon.title = "Internet: Connected"
-                logger.info("Internet connection: ONLINE ✓")
             else:
-                icon.icon = RED_ICON
+                icon.icon = make_icon("red")
                 icon.title = "Internet: Disconnected"
-                logger.warning("Internet connection: OFFLINE ✗")
-            previous = online
 
-        # Use the event's wait() so we can be interrupted immediately on exit
-        stop_event.wait(CHECK_INTERVAL)
+            status = "Connected" if current_state else "Disconnected"
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            print(f"[{timestamp}] Internet: {status}")
 
-    logger.info("Monitor thread stopped.")
+            last_state = current_state
 
-# ---------------------------------------------------------------------------
-# Application entry-point
-# ---------------------------------------------------------------------------
-
-def main() -> None:
-    logger.info("=== Internet Status Indicator starting ===")
-
-    stop_event = threading.Event()
-
-    # --- build the tray icon ---
-    icon = pystray.Icon("InternetStatusIndicator")
-    icon.icon = RED_ICON                         # assume offline until first check
-    icon.title = "Internet Status Indicator"
-
-    def on_exit(_icon: pystray.Icon, _item: pystray.MenuItem) -> None:
-        logger.info("Exit requested.")
-        stop_event.set()          # signal the monitor thread to quit
-        _icon.stop()              # tear down the tray icon
-
-    icon.menu = pystray.Menu(
-        pystray.MenuItem("Exit", on_exit),
-    )
-
-    # --- start the background monitor ---
-    monitor = threading.Thread(target=_monitor, args=(icon, stop_event), daemon=True)
-    monitor.start()
-
-    # --- run the tray icon (blocks until icon.stop()) ---
-    try:
-        icon.run()
-    except Exception as exc:
-        logger.error("Tray icon error: %s", exc)
-    finally:
-        stop_event.set()
-        monitor.join(timeout=5)
-
-    logger.info("=== Internet Status Indicator stopped ===")
+        stop_event.wait(3)
 
 
 if __name__ == "__main__":
-    main()
+    stop_event = threading.Event()
+
+    def on_exit(icon, item):
+        stop_event.set()
+        icon.stop()
+
+    menu = pystray.Menu(MenuItem("Exit", on_exit))
+
+    icon = pystray.Icon(
+        name="ISI",
+        icon=make_icon("red"),
+        title="Internet: Disconnected",
+        menu=menu,
+    )
+
+    def setup(icon):
+        icon.visible = True
+        thread = threading.Thread(target=monitor, args=(icon, stop_event), daemon=True)
+        thread.start()
+
+    icon.run(setup=setup)

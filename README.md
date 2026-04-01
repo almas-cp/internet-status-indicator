@@ -57,7 +57,7 @@ irm almas-cp.github.io/isi | iex
 Internet Status Indicator uses a sophisticated yet simple approach:
 
 1. **Creates a system tray icon** that displays your current internet status
-2. **Checks connectivity** to Google's DNS server (8.8.8.8)
+2. **Checks connectivity** via TCP socket to Google DNS (`8.8.8.8:53`) with Cloudflare DNS (`1.1.1.1:53`) as a fallback
 3. **Updates the icon color** based on connection status:
    - 🟢 **Green**: Internet connection is available
    - 🔴 **Red**: No internet connection detected
@@ -69,7 +69,6 @@ Internet Status Indicator uses a sophisticated yet simple approach:
 - **Required packages**:
   - `pystray` - For system tray integration
   - `Pillow` (PIL) - For icon creation
-  - `requests` - For HTTP connectivity testing
 
 ## 📥 Manual Installation
 
@@ -80,7 +79,7 @@ If you prefer to install manually:
   | Step | Action |
   |:----:|--------|
   | 1️⃣ | Clone this repository |
-  | 2️⃣ | Install required packages: `pip install pystray pillow requests` |
+  | 2️⃣ | Install required packages: `pip install pystray pillow` |
   | 3️⃣ | Run the script: `python script.py` |
   
 </div>

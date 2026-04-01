@@ -692,7 +692,7 @@
                 <div class="feature-card glass-panel observe-anim" style="animation-delay: 0.4s;">
                     <div class="feature-icon-wrapper">🧠</div>
                     <h3 class="feature-title">Smart Detection</h3>
-                    <p class="feature-desc">Utilizes robust verification methods contacting high-availability endpoints to ensure precise connectivity status.</p>
+                    <p class="feature-desc">Uses dual-DNS fallback via TCP sockets to Google (8.8.8.8) and Cloudflare (1.1.1.1) for precise, reliable connectivity status.</p>
                 </div>
             </div>
         </section>
@@ -712,7 +712,7 @@
                     <div class="step-number">02</div>
                     <div class="step-content">
                         <h3>Connectivity Verification</h3>
-                        <p>Periodically validates end-to-end network connectivity by securely polling reliable DNS servers (like 8.8.8.8) with ultra-low latency requests.</p>
+                        <p>Validates end-to-end network connectivity via lightweight TCP sockets to Google DNS (8.8.8.8:53) with Cloudflare DNS (1.1.1.1:53) as an automatic fallback.</p>
                     </div>
                 </div>
                 <div class="step glass-panel observe-anim" style="transition-delay: 0.2s;">
